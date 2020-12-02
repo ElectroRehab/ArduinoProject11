@@ -1,0 +1,269 @@
+#include "IRremote.h"
+#define RED_LED 3
+#define YELLOW_LED 4
+#define BLUE_LED 5
+#define GREEN_LED 6
+#define IRRECEIVE  7
+#define RED_DELAY 1000
+#define BLUE_DELAY 500
+#define YELLOW_DELAY  250
+#define GREEN_DELAY 500
+#define BLANK 8
+long endTime;
+int activeLED;
+bool ledState;
+
+/*-----( Declare objects )-----*/
+// create instance of 'irrecv'
+IRrecv irrecv(IRRECEIVE);
+// create instance of 'decode_results'    
+decode_results results;      
+
+//-----( Function )-----
+void translateIR(){ 
+// describing Remote IR codes
+  switch(results.value){
+  // POWER
+  case 0xFFA25D: 
+     lightAll(); 
+     break; 
+  // FUNC/STOP
+  case 0xFFE21D: 
+    highLow(6, 50, 1); 
+    highLow(3, 50, 1); 
+    break; 
+  // VOL+
+  case 0xFF629D: 
+    highLow(6, 50, 1); 
+    highLow(5, 50, 1);
+    highLow(4, 50, 1); 
+    highLow(3, 50, 1); 
+    break;
+  // FAST BACK
+  case 0xFF22DD: 
+    revFlash(1);
+    break; 
+  // PAUSE
+  case 0xFF02FD: 
+    flash(1); 
+    lightPause(); 
+    break;
+  // FAST FORWARD
+  case 0xFFC23D: 
+    fastFlash(1); 
+    break;
+  // DOWN
+  case 0xFFE01F: 
+    downDrop(1);
+    break; 
+  // VOL-
+  case 0xFFA857: 
+    highLow(3, 50, 1); 
+    highLow(4, 50, 1);
+    highLow(5, 50, 1); 
+    highLow(6, 50, 1); 
+    break; 
+  // UP
+  case 0xFF906F: 
+    throwUp(1); 
+    break;
+  // EQ
+  case 0xFF9867: 
+    eqPress(); 
+    break;
+  // ST/REPT
+  case 0xFFB04F:
+    stopOne(); 
+    break;
+  // 0 Button
+  case 0xFF6897: 
+    fastFlash(1); 
+    throwUp(0); 
+    break;
+  // 1 Button
+  case 0xFF30CF: 
+    throwUp(1); 
+    fastFlash(1);  
+    break;
+  // 2 Button
+  case 0xFF18E7: 
+    throwUp(1); 
+    fastFlash(2); 
+    break;
+  // 3 Button
+  case 0xFF7A85: 
+    throwUp(1); 
+    fastFlash(3); 
+    break;
+  // 4 Button
+  case 0xFF10EF: 
+    throwUp(1); 
+    fastFlash(4); 
+    break; 
+  // 5 Button
+  case 0xFF38C7: 
+    throwUp(1); 
+    fastFlash(5); 
+    break;
+  // 6 Button
+  case 0xFF5AA5: 
+    throwUp(1); 
+    fastFlash(6);
+    break;
+  // 7 Button
+  case 0xFF42BD: 
+    throwUp(1); 
+    fastFlash(7); 
+    break;
+  // 8 Button
+  case 0xFF4AB5: 
+    throwUp(1); 
+    fastFlash(8); 
+    break;
+  // 9 Button
+  case 0xFF52AD: 
+    throwUp(1); 
+    fastFlash(9); 
+    break;
+  case 0xFFFFFFFF: break;
+
+  default: 
+    flash(0);
+  }
+}
+void setup(){
+  // put your setup code here, to run once:
+  pinMode(RED_LED, OUTPUT);
+  pinMode(YELLOW_LED, OUTPUT);
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(IRRECEIVE, INPUT);
+  activeLED = RED_LED; // Set to any LED
+  ledState = false;
+  endTime = millis() - 1;
+  Serial.begin(9600);
+  Serial.println("IR Receiver Button Decode"); 
+  irrecv.enableIRIn(); // Start the receiver
+
+}
+// NON-BLOCKING LED call
+bool blinkLed(int pin, int delayMs){
+  if (pin != activeLED){
+    digitalWrite(activeLED, LOW);
+    activeLED = pin;
+    ledState = true;
+    digitalWrite(activeLED, ledState);
+    endTime = millis() + delayMs;
+  }
+  else{
+    if (millis() > endTime){
+      ledState = !ledState;
+      digitalWrite(activeLED, ledState);
+      endTime = millis() + delayMs;
+    }
+  }
+}
+void lightAll(){
+  digitalWrite(RED_LED, HIGH);
+  digitalWrite(YELLOW_LED, HIGH);
+  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(GREEN_LED, HIGH);
+}
+void lightPause(){  
+  digitalWrite(YELLOW_LED, HIGH);
+  digitalWrite(BLUE_LED, HIGH);
+  delay(1000);
+  digitalWrite(YELLOW_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+}
+void highLow(int pin, int num, int flash){
+  // For loop to make pins do stuff from Void Loop Module.
+  for(int i = 0; i < flash; i++){
+    // What pin to energize in high setting.
+    digitalWrite(pin, HIGH);
+    // Time in high setting
+    delay(num);
+    // What pin to energize in low setting
+    digitalWrite(pin, LOW);
+    // Time in low setting
+    delay(num);
+  }
+}
+void stopOne(){
+  digitalWrite(RED_LED, HIGH);
+  delay(1000);
+  for(int i = 0; i < 5; i++){
+    digitalWrite(BLUE_LED, HIGH);
+    delay(100);
+    digitalWrite(BLUE_LED, LOW);
+    digitalWrite(YELLOW_LED, HIGH);
+    delay(100);
+    digitalWrite(YELLOW_LED, LOW);
+    digitalWrite(GREEN_LED, HIGH);
+    delay(100);
+    digitalWrite(GREEN_LED, LOW);
+    
+  }
+  digitalWrite(RED_LED, LOW);
+}
+void eqPress(){  
+  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(RED_LED, HIGH);
+  delay(1000);
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+}
+void downDrop(int bang){
+  for(int i = 0; i < bang; i++){
+    highLow(RED_LED, 100, 1);
+    highLow(YELLOW_LED, 100, 1);
+    highLow(BLUE_LED, 100, 1);
+    highLow(GREEN_LED, 100, 1);
+    
+  }
+}
+void throwUp(int bang){
+  for(int i = 0; i < bang; i++){
+    highLow(GREEN_LED, 100, 1);
+    highLow(BLUE_LED, 100, 1);
+    highLow(YELLOW_LED, 100, 1);
+    highLow(RED_LED, 100, 1);
+    
+  }
+}
+void flash(int bang){
+  for(int i = 0; i < bang; i++){
+    highLow(RED_LED, 50, 1);
+    highLow(YELLOW_LED, 50, 1);
+    highLow(BLUE_LED, 50, 1);
+    highLow(GREEN_LED, 50, 1);
+    
+  }
+  // Turn off everything for 2 seconds 
+  highLow(BLANK, 0, 1);
+}
+void fastFlash(int bang){
+  for(int i = 0; i < bang; i++){
+    highLow(BLUE_LED, 20, 1);
+    highLow(GREEN_LED, 20, 1);
+    highLow(YELLOW_LED, 20, 1);
+    highLow(RED_LED, 20, 1);
+  }
+}
+void revFlash(int bang){
+  for(int i = 0; i < bang; i++){
+    highLow(RED_LED, 20, 1);
+    highLow(YELLOW_LED, 20, 1);
+    highLow(GREEN_LED, 20, 1);
+    highLow(BLUE_LED, 20, 1);  
+    
+  }
+}
+void loop()   /*----( LOOP: RUNS CONSTANTLY )----*/
+{
+  if (irrecv.decode(&results)){
+    translateIR();
+    irrecv.resume();
+  }
+  else{  }
+}
